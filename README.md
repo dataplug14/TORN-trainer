@@ -1,6 +1,6 @@
 # Torn Trainer
 
-**Lead Developer:** @dataplug14  
+**Lead Developer:** https://github.com/dataplug14  
 **License:** MIT  
 **Python:** 3.11+
 
