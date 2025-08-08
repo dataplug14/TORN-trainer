@@ -1,115 +1,169 @@
-## Torn Trainer (read‑only, no Docker)
+# Torn Trainer
 
-A safe, read‑only Torn City helper that recommends when to train, which crimes to prefer, and when to buy/sell watched market items. It never performs in‑game actions. All API calls and recommendations are audit‑logged to SQLite and rotating log files.
+**Lead Developer:** @USER  
+**License:** MIT  
+**Python:** 3.11+
 
-Built for Python 3.11+, async via `httpx` with a token‑bucket rate limiter. Minimal, privacy‑respecting, and easy to run on Windows/macOS/Linux.
+A smart, read-only assistant for Torn City that helps you optimize your gameplay without breaking any rules. Think of it as your personal advisor that watches your stats and tells you the best times to train, which crimes are most profitable, and when market prices hit your targets.
 
-### What you get
-- Read‑only trainer and helper: recommendations only
-- Async Torn API client with retries, backoff, jitter, and rate limiting (60 req/min default; up to 100)
-- CLI: `start`, `run-once`, `dry-run`, `status`
-- Audit: SQLite DB + rotating logs
-- Market watch alerts
+**Important:** This tool is completely read-only. It never performs any in-game actions - it just gives you recommendations that you can choose to follow or ignore.
 
-### Quick start
-1) Install Python 3.11+.
-2) Create a virtual environment and install dependencies.
-   - Windows (PowerShell):
-     ```powershell
+## Features
+
+- **Smart Training Recommendations** - Tells you when your energy is high enough to make training worthwhile
+- **Crime Optimization** - Calculates which crimes give you the best cash-per-nerve ratio
+- **Market Monitoring** - Watches items you care about and alerts when prices hit your buy/sell targets
+- **Bulletproof API Client** - Handles rate limits, retries, and errors gracefully so you don't get banned
+- **Complete Audit Trail** - Everything is logged to SQLite and files so you can see exactly what happened
+- **Cross-Platform** - Works on Windows, macOS, and Linux
+
+## Getting Started
+
+### 1. Install Python 3.11+
+Make sure you have Python 3.11 or newer installed.
+
+### 2. Set up the environment
+
+**Windows (PowerShell):**
+```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-     ```
-   - macOS/Linux:
-     ```bash
+```
+
+**macOS/Linux:**
+```bash
 python3 -m venv .venv
-. ./.venv/bin/activate
+source .venv/bin/activate
 pip install -r requirements.txt
-     ```
-3) Add your Torn credentials (do not share these):
-   - Create `.env` in the project folder with:
-     ```
-API_KEY=YOUR_TORN_API_KEY
-USER_ID=YOUR_TORN_USER_ID
+```
+
+### 3. Configure your credentials
+
+Create a `.env` file in the project root with your Torn API details:
+
+```env
+API_KEY=your_torn_api_key_here
+USER_ID=your_torn_user_id
 MAX_REQUESTS_PER_MIN=60
 SAFE_SPACING_SECONDS=1.0
 DB_PATH=torn.db
 LOG_LEVEL=INFO
 LOG_DIR=logs
-     ```
-   - Alternatively, you can set environment variables in your shell session.
-
-4) Run a safe dry‑run first:
-   - Windows:
-     ```powershell
-.\.venv\Scripts\python.exe -m src.run_trainer run-once --dry-run --log-level INFO
-     ```
-   - macOS/Linux:
-     ```bash
-python -m src.run_trainer run-once --dry-run --log-level INFO
-     ```
-
-5) Optional: watch market items (repeat flag allowed):
-```powershell
-.\.venv\Scripts\python.exe -m src.run_trainer run-once --dry-run --market-watch 108:35000:50000 --log-level INFO
 ```
 
-6) Continuous run:
+**⚠️ Keep your API key private!** Don't share it or commit it to version control.
+
+### 4. Test it out
+
+Always run a dry-run first to make sure everything works:
+
+**Windows:**
 ```powershell
-.\.venv\Scripts\python.exe -m src.run_trainer start --log-level INFO
+.\.venv\Scripts\python.exe -m src.run_trainer run-once --dry-run
 ```
 
-### How it decides
-- Gym: recommends training when `energy >= threshold` (default 90). Logs a plan and prints a safe, read‑only snippet.
-- Crimes: when `nerve >= threshold` (default 30) and no crime cooldown, prefers crimes with the highest expected cash‑per‑nerve from the `torn` crimes data.
-- Market: monitors configured item IDs; alerts when price crosses buy/sell thresholds.
-
-It never performs write actions. It prints recommendations and logs planned actions to the DB.
-
-### CLI overview
-- `run-once`: one decision loop, prints recommendations
-- `start`: continuous scheduler loop
-- `dry-run`: alias of `run-once` with `--dry-run`
-- `status`: prints last snapshot stored in SQLite
-
-Common options:
-- `--max-requests-per-min` (default 60, max 100)
-- `--energy-threshold` (default 90)
-- `--nerve-threshold` (default 30)
-- `--log-level` (DEBUG, INFO, WARNING, ERROR)
-- `--market-watch ITEM_ID:BUY:SELL` (repeatable)
-- `--simulate-money` (use synthetic user money for testing)
-
-Examples:
-```powershell
-.\.venv\Scripts\python.exe -m src.run_trainer run-once --dry-run --market-watch 108:35000:50000 --market-watch 17:8000:12000
-.\.venv\Scripts\python.exe -m src.run_trainer start --max-requests-per-min 80 --energy-threshold 95 --nerve-threshold 35
+**macOS/Linux:**
+```bash
+python -m src.run_trainer run-once --dry-run
 ```
 
-### Safety, etiquette, and privacy
-- Read‑only: no in‑game write actions are sent.
-- Conservative defaults: 60 req/min, ≥1s spacing, jitter, retries on 429/5xx.
-- Repeated auth errors mark your key as disabled in the DB to stop further calls.
-- Your API key and user ID live only in your local `.env` or env vars; logs redact the key.
+### 5. Start using it
 
-### Logs and database
-- Logs: `logs/trainer.log` with rotating file handler + console output
-- SQLite DB: `torn.db` (created automatically)
-  - `actions(id,timestamp,action_type,payload,result_json)`
-  - `snapshots(ts,json)`
-  - `keys(id,key,disabled_at)`
-  - `market_watch(item_id,buy_threshold,sell_threshold,last_seen_price)`
+For continuous monitoring:
+```powershell
+.\.venv\Scripts\python.exe -m src.run_trainer start
+```
 
-### Tests
+To watch specific market items:
+```powershell
+.\.venv\Scripts\python.exe -m src.run_trainer start --market-watch 108:35000:50000
+```
+
+## How It Works
+
+The logic is pretty straightforward:
+
+**Training:** When your energy hits the threshold (default: 90), it recommends which gym to hit based on your current stats and what you're trying to improve.
+
+**Crimes:** When you have enough nerve (default: 30) and no crime cooldown, it calculates which crimes give you the best return on investment and suggests those.
+
+**Market:** Continuously monitors items you specify and alerts you when prices cross your buy/sell thresholds.
+
+Everything is logged to the database so you can track patterns and see what recommendations were made when.
+
+## Commands
+
+- `run-once` - Check your stats once and give recommendations
+- `start` - Run continuously, checking periodically
+- `dry-run` - Same as `run-once --dry-run` (safe testing)
+- `status` - Show your last recorded stats
+
+### Useful Options
+
+- `--energy-threshold 90` - When to recommend training (default: 90)
+- `--nerve-threshold 30` - When to recommend crimes (default: 30)
+- `--max-requests-per-min 60` - API rate limit (max: 100)
+- `--market-watch ITEM_ID:BUY:SELL` - Monitor market prices
+- `--log-level INFO` - How verbose to be (DEBUG, INFO, WARNING, ERROR)
+
+### Examples
+
+```powershell
+# Test with market monitoring
+.\.venv\Scripts\python.exe -m src.run_trainer dry-run --market-watch 108:35000:50000
+
+# Run continuously with custom thresholds
+.\.venv\Scripts\python.exe -m src.run_trainer start --energy-threshold 95 --nerve-threshold 35
+
+# Monitor multiple market items
+.\.venv\Scripts\python.exe -m src.run_trainer start --market-watch 108:35000:50000 --market-watch 17:8000:12000
+```
+
+## Safety & Privacy
+
+This tool was built with safety as the top priority:
+
+- **100% Read-Only** - It literally cannot perform any in-game actions. The code doesn't even have the capability.
+- **Respectful Rate Limiting** - Conservative 60 requests/minute default with smart spacing and jitter
+- **Auto-Disable on Auth Errors** - If your key gets revoked, it stops making requests automatically
+- **Local Data Only** - Your credentials never leave your machine. API keys are redacted from logs.
+- **Torn-Friendly** - Built to respect Torn's API limits and terms of service
+
+## Data Storage
+
+Everything is stored locally on your machine:
+
+- **Logs:** `logs/trainer.log` (rotates automatically to prevent huge files)
+- **Database:** `torn.db` SQLite file with tables for:
+  - Actions taken and their results
+  - Snapshots of your stats over time
+  - API key status
+  - Market watch configurations and price history
+
+## Development
+
+Run the tests:
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-### Troubleshooting
-- Empty recommendations: your energy/nerve may be below thresholds, or a crime cooldown is active. Lower thresholds using CLI flags and try again.
-- Key disabled: fix/replace your key, then delete the `keys` row or use a new `USER_ID` key id.
-- Network/API errors: see `logs/trainer.log` and the `actions` table for statuses and payload snippets.
-- Rate limits: keep spacing ≥ 1s; do not exceed 100 req/min.
+## Troubleshooting
 
-### Important
-You are responsible for ensuring your usage complies with Torn rules. This tool is read‑only and prints recommendations only.
+**"No recommendations"** - Your energy/nerve might be below the thresholds, or you might have a crime cooldown active. Try lowering the thresholds with `--energy-threshold` or `--nerve-threshold`.
+
+**"Key disabled"** - Your API key got revoked or changed. Update your `.env` file and delete the old key from the database, or just delete the whole `torn.db` file to start fresh.
+
+**Network errors** - Check `logs/trainer.log` for details. The tool handles most API errors gracefully, but persistent issues usually mean API problems on Torn's end.
+
+**Rate limit issues** - Don't go above 100 requests/minute, and keep spacing at least 1 second. The defaults are conservative for a reason.
+
+## Disclaimer
+
+This tool is completely read-only and only provides recommendations. You're responsible for ensuring your usage complies with Torn City's rules and terms of service. When in doubt, ask the Torn staff.
+
+---
+
+**Questions or issues?** Open an issue on GitHub or reach out to @USER.
+
+**Like this project?** Give it a star ⭐ and maybe buy me a coffee!
 
