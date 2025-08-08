@@ -1,6 +1,6 @@
 # Torn Trainer
 
-**Lead Developer:** @USER  
+**Lead Developer:** @dataplug14  
 **License:** MIT  
 **Python:** 3.11+
 
@@ -163,7 +163,7 @@ This tool is completely read-only and only provides recommendations. You're resp
 
 ---
 
-**Questions or issues?** Open an issue on GitHub or reach out to @USER.
+**Questions or issues?** Open an issue on GitHub or reach out to me.
 
 **Like this project?** Give it a star ⭐ and maybe buy me a coffee!
 
